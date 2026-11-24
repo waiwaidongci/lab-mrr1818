@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Cormorant+Garamond&display=swap');
+:root {
+  --text-font: 'Lexend'; --title-font: 'Cormorant Garamond';
+  --paper: oklch(.975 .012 350); --surface: oklch(.994 .006 350);
+  --ink: oklch(.235 .035 350); --quiet: oklch(.435 .038 350);
+  --stripe: oklch(.961 .014 350); --rule: oklch(.858 .024 350);
+  --accent: oklch(.445 0.099 350); --button-ink: oklch(.98 .007 350);
+  --focus: oklch(.64 0.099 350);
+  --side: oklch(.923 .029 350);
+  --side-ink: oklch(.255 .033 350);
+  --highlight: oklch(.866 .045 350);
+  --highlight-edge: oklch(.49 .10 350);
+  --side-width: 258px; --side-pad: 1.25rem;
+  --login-ratio: 1.6900000000000002fr; --report-stripe: 3px;
+}
