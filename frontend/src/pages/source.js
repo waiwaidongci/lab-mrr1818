@@ -1,6 +1,7 @@
 import {api, download} from '../api/client.js';
 import {empty, errorSlot} from '../components/common/layout.js';
 import {table} from '../components/common/table.js';
+import {supplementEntry} from './accounting.js';
 import {actions} from '../constants/enums.js';
 import {bindForm} from '../hooks/forms.js';
 import {state} from '../stores/session.js';
@@ -14,11 +15,17 @@ export async function overview() {
 
 export async function source() {
   const profile = state.profile;
-  const revisions = await api('/datasets');
+  const [revisions,openInfo] = await Promise.all([
+    api('/datasets'),
+    api('/accounting/open-month').catch(() => null),
+  ]);
   const active = revisions.find(row => row.id === state.datasetId) || revisions[0];
   const detail = active ? await api(`/datasets/${active.id}`) : null;
   const importer = state.account.role === 'analyst' ? `<form id="upload" class="inline-form"><label>导入数据文件<input name="file" type="file" accept=".csv,text/csv" required></label><button type="submit">保存数据版本</button>${errorSlot}</form>` : '';
-  return `<section><p>${esc(profile.input)}</p><p class="hint">CSV 表头顺序可调整，列名需匹配样例。</p>${importer}<button type="button" id="example" class="secondary">下载样例 CSV</button><p id="download-error" role="alert" class="error"></p></section>${detail ? `<section><label>数据版本<select id="revision">${revisions.map(row => `<option value="${row.id}" ${row.id === active.id ? 'selected' : ''}>${esc(row.name)} · #${row.id}</option>`).join('')}</select></label><p class="hint">${detail.count} 行 · 页面预览前 ${detail.records.length} 行 · SHA-256 ${esc(detail.checksum.slice(0,12))}</p>${table(detail.records,profile.columns)}</section>` : empty('请导入项目样例或业务 CSV。')}`;
+  const applySupplement = state.account.role === 'analyst'
+    ? `<button type="button" id="apply-revision-supplement" class="secondary" data-id="${active.id}">将此版本作为补传批次应用</button><p id="apply-supplement-error" class="error" role="alert"></p>`
+    : '';
+  return `<section><p>${esc(profile.input)}</p><p class="hint">CSV 表头顺序可调整，列名需匹配样例。</p>${importer}<button type="button" id="example" class="secondary">下载样例 CSV</button><p id="download-error" role="alert" class="error"></p></section>${supplementEntry(openInfo?.first_open_month)}${detail ? `<section><label>数据版本<select id="revision">${revisions.map(row => `<option value="${row.id}" ${row.id === active.id ? 'selected' : ''}>${esc(row.name)} · #${row.id}</option>`).join('')}</select></label><p class="hint">${detail.count} 行 · 页面预览前 ${detail.records.length} 行 · SHA-256 ${esc(detail.checksum.slice(0,12))}</p>${applySupplement}${table(detail.records,profile.columns)}</section>` : empty('请导入项目样例或业务 CSV。')}`;
 }
 
 export function bindSource(root, refresh) {

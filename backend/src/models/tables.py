@@ -24,3 +24,20 @@ deliveries = Table('report_deliveries', metadata, Column('id', Integer, primary_
 audit = Table('operation_audit', metadata, Column('id', Integer, primary_key=True),
               Column('at', Double, nullable=False), Column('actor', String(40), nullable=False),
               Column('action', String(30), nullable=False), Column('subject', Integer, nullable=False))
+period_locks = Table('period_locks', metadata, Column('month', String(7), primary_key=True),
+                     Column('run_id', Integer, index=True), Column('dataset_id', Integer),
+                     Column('actor', String(40), nullable=False), Column('locked_at', Double, nullable=False),
+                     Column('records', JSON, nullable=False), Column('closing_states', JSON, nullable=False),
+                     Column('snapshot', JSON, nullable=False))
+adjustment_batches = Table('adjustment_batches', metadata, Column('id', Integer, primary_key=True),
+                           Column('target_month', String(7), nullable=False, index=True),
+                           Column('name', String(180), nullable=False),
+                           Column('idempotency_key', String(120), unique=True),
+                           Column('checksum', String(64), nullable=False, unique=True),
+                           Column('records', JSON, nullable=False),
+                           Column('record_count', Integer, nullable=False),
+                           Column('actor', String(40), nullable=False),
+                           Column('created', Double, nullable=False))
+accounting_mutex = Table('accounting_mutex', metadata, Column('id', Integer, primary_key=True),
+                         Column('version', Integer, nullable=False),
+                         Column('touched_at', Double, nullable=False))

@@ -1,4 +1,5 @@
 import {api,download} from '../api/client.js';
+import {accountingPanel} from './accounting.js';
 import {empty,errorSlot} from '../components/common/layout.js';
 import {table} from '../components/common/table.js';
 import {decisions} from '../constants/enums.js';
@@ -10,9 +11,12 @@ import {chooseRun,currentRun} from './analysis.js';
 export async function review() {
   const {runs,run} = await currentRun();
   if (!run) return empty('先运行分析。','#2','配置分析');
+  const month = run.options?.report_month;
+  const accountingStatus = month ? await api(`/accounting/status?month=${encodeURIComponent(month)}`).catch(() => null) : null;
+  const accounting = accountingStatus ? accountingPanel(accountingStatus,{run}) : '';
   const gate = run.result?.can_publish === false ? '<p class="notice">当前结果未达到发布门槛，可退回复算。</p>' : '';
   const form = run.result && !run.decision && state.account.role === 'reviewer' ? `<form id="review" data-id="${run.id}"><label>复核意见<textarea name="note" required minlength="2" maxlength="1000"></textarea></label><button type="submit" value="approved" ${gate ? 'disabled' : ''}>批准发布</button> <button type="submit" value="returned" class="secondary">退回复算</button>${errorSlot}</form>` : '';
-  return `<section>${chooseRun(runs,run.id)}<h2>${esc(state.profile.decision)}</h2><p>${esc(run.result?.headline || '分析完成后可复核。')}</p>${gate}${run.decision ? `<p class="notice">${decisions[run.decision]} · ${esc(run.reviewer)} · ${time(run.reviewed)}<br>${esc(run.review_note)}</p>` : ''}${form}<p><a href="#3/${run.id}">打开结果及口径</a> · <a href="#5/${run.id}">查看交付</a></p></section>`;
+  return `<section>${chooseRun(runs,run.id)}<h2>${esc(state.profile.decision)}</h2><p>${esc(run.result?.headline || '分析完成后可复核。')}</p>${accounting}${gate}${run.decision ? `<p class="notice">${decisions[run.decision]} · ${esc(run.reviewer)} · ${time(run.reviewed)}<br>${esc(run.review_note)}</p>` : ''}${form}<p><a href="#3/${run.id}">打开结果及口径</a> · <a href="#5/${run.id}">查看交付</a></p></section>`;
 }
 
 export async function delivery() {

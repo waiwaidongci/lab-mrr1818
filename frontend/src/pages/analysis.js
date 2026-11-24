@@ -1,4 +1,5 @@
 import {api} from '../api/client.js';
+import {accountingPanel,adjustmentTable,reconciliationTable,supplementRecordsTable} from './accounting.js';
 import {empty,errorSlot} from '../components/common/layout.js';
 import {report} from '../components/common/report.js';
 import {table} from '../components/common/table.js';
@@ -10,9 +11,12 @@ import {esc,formData,time} from '../utils/html.js';
 
 export async function analysis() {
   const profile = state.profile;
-  const [datasets,runs] = await Promise.all([api('/datasets'),api('/runs')]);
+  const [datasets,runs,locks] = await Promise.all([
+    api('/datasets'), api('/runs'), api('/locks').catch(() => []),
+  ]);
+  const lockedMonths = new Set(locks.map(lock => lock.month));
   const form = state.account.role === 'analyst' && datasets.length ? `<form id="queue" class="inline-form"><label>数据版本<select name="dataset_id">${datasets.map(row => `<option value="${row.id}" ${row.id === state.datasetId ? 'selected' : ''}>${esc(row.name)} · #${row.id}</option>`).join('')}</select></label>${profile.options.map(field => `<label>${esc(field.label)}${fieldInput(field,esc)}</label>`).join('')}<button type="submit">提交计算</button>${errorSlot}</form>` : empty(datasets.length ? '分析员可提交计算。' : '先导入数据版本。', '#1', '查看数据台账');
-  return `<section><h2>计算条件</h2><p>${esc(profile.method)}</p>${form}</section><section><h2>分析记录</h2>${table(runs.map(run => ({任务:{link:`#3/${run.id}`,text:`#${run.id}`},数据版本:run.dataset_id,状态:states[run.state],提交时间:time(run.created),复核:decisions[run.decision] ?? '待复核'})))}</section>`;
+  return `<section><h2>计算条件</h2><p>${esc(profile.method)}</p>${form}</section><section><h2>分析记录</h2>${table(runs.map(run => ({任务:{link:`#3/${run.id}`,text:`#${run.id}`},数据版本:run.dataset_id,报告月:run.options?.report_month || '—',状态:states[run.state],锁账:lockedMonths.has(run.options?.report_month) ? '已锁账' : '未锁',提交时间:time(run.created),复核:decisions[run.decision] ?? '待复核'})))}</section>`;
 }
 
 export async function currentRun() {
@@ -28,8 +32,22 @@ export function chooseRun(runs, selected) {
 export async function results() {
   const {runs,run} = await currentRun();
   if (!run) return empty('提交一条分析任务后可在这里查看结果。','#2','配置分析');
-  const result = run.result ? report(run.result) : `<p ${run.error ? 'class="error"' : 'data-poll'}>${esc(run.error || states[run.state])}</p>`;
-  return `<section>${chooseRun(runs,run.id)}<p class="hint">数据版本 #${run.dataset_id} · 计算状态 ${states[run.state]}</p>${result}${run.result ? `<a class="button" href="#4/${run.id}">进入业务复核</a>` : '<a href="#2">回到分析条件</a>'}</section>`;
+  const month = run.options?.report_month;
+  let status = null;
+  let bridge = null;
+  if (month) {
+    status = await api(`/accounting/status?month=${encodeURIComponent(month)}`);
+    if (status.bridge_available) {
+      bridge = await api(`/accounting/bridge?month=${encodeURIComponent(month)}`);
+    }
+  }
+  const shown = bridge || run.result;
+  const result = shown ? report(shown) : `<p ${run.error ? 'class="error"' : 'data-poll'}>${esc(run.error || states[run.state])}</p>`;
+  const accounting = status ? accountingPanel(status,{run}) : '';
+  const reconciliation = reconciliationTable(shown);
+  const adjustments = adjustmentTable(shown);
+  const supplementRecords = supplementRecordsTable(shown);
+  return `<section>${chooseRun(runs,run.id)}<p class="hint">数据版本 #${run.dataset_id} · 计算状态 ${states[run.state]}${status?.locked ? ' · 已锁账固定快照' : ''}</p>${accounting}${reconciliation}${adjustments}${supplementRecords}${result}${run.result ? `<a class="button" href="#4/${run.id}">进入业务复核</a>` : '<a href="#2">回到分析条件</a>'}</section>`;
 }
 
 export function bindAnalysis(root, section, refresh) {

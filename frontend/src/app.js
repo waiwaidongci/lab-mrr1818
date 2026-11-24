@@ -2,6 +2,7 @@ import {api} from './api/client.js';
 import {empty,login,shell} from './components/common/layout.js';
 import {bindForm} from './hooks/forms.js';
 import {analysis,bindAnalysis,results} from './pages/analysis.js';
+import {bindAccounting,periodResults} from './pages/accounting.js';
 import {bindDispatch,delivery,review} from './pages/dispatch.js';
 import {bindSource,overview,source} from './pages/source.js';
 import {getRoute} from './router/route.js';
@@ -24,16 +25,18 @@ async function render() {
     },render);
     return;
   }
-  const {section,runId} = getRoute();
+  const {section,runId,period} = getRoute();
   state.runId = runId;
+  state.period = period;
   try {
-    const content = await pages[section]();
+    const content = section === 3 && period ? await periodResults(period) : await pages[section]();
     if (current !== generation) return;
     root.innerHTML = shell(section,content);
     state.status = '';
     root.querySelector('#logout').addEventListener('click',() => {session(null,null); render();});
     bindSource(root,render);
     bindAnalysis(root,section,render);
+    bindAccounting(root,render);
     bindDispatch(root,render);
     if (root.querySelector('[data-poll]')) tick = setTimeout(render,850);
   } catch (error) {

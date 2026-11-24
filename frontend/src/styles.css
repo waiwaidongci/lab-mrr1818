@@ -43,6 +43,10 @@ input,select,textarea {width:100%;min-height:40px;padding:.52rem .7rem;border:1p
 textarea {min-height:95px;resize:vertical}
 .inline-form {grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));align-items:end;margin:.8rem 0 1rem}
 .inline-form [data-error] {grid-column:1/-1;margin:0}
+.accounting-panel {background:color-mix(in srgb,var(--surface) 72%,transparent);padding:1rem 1.1rem 1.2rem;border:1px solid var(--rule)}
+.accounting-actions {display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;margin:.6rem 0}
+.accounting-actions .inline-form {margin:0;min-width:min(260px,100%)}
+.accounting-panel>.inline-form {grid-template-columns:minmax(min(260px,100%),360px) auto}
 #review {max-width:68ch}
 #revision,#pick-run {max-width:38rem}
 .table-wrap {overflow:auto;max-width:100%;border-block:1px solid var(--rule)}
